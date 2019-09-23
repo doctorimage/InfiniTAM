@@ -42,6 +42,11 @@ static void CreateDefaultImageSource(ImageSourceEngine* & imageSource, IMUSource
 		return;
 	}
 
+    if (strcmp(calibFile, "rosbag") == 0) {
+        imageSource = new RealSense2FileEngine(filename1);
+        return;
+	}
+
 	printf("using calibration file: %s\n", calibFile);
 
 	if ((imageSource == NULL) && (filename2 != NULL))

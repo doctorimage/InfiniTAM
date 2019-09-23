@@ -74,6 +74,7 @@ namespace InputSource {
 
 	public:
 		explicit BaseImageSourceEngine(const char *calibFilename);
+		BaseImageSourceEngine()= default;
 
 		/** Override */
 		virtual ITMLib::ITMRGBDCalib getCalib() const;

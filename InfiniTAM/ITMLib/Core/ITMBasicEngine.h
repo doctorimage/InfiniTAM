@@ -65,6 +65,10 @@ namespace ITMLib
 		void SaveToFile();
 		void LoadFromFile();
 
+		Matrix4f getDepthPose() {
+		    return trackingState->pose_d->GetM();
+		}
+
 		/// Get a result image as output
 		Vector2i GetImageSize(void) const;
 

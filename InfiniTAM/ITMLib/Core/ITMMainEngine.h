@@ -83,6 +83,10 @@ namespace ITMLib
 		virtual void SaveToFile() { };
 		virtual void LoadFromFile() { };
 
+		virtual Matrix4f getDepthPose() {
+		    return {};
+        }
+
 		virtual ~ITMMainEngine() {}
 	};
 }

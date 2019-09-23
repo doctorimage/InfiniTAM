@@ -17,7 +17,7 @@
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libavfilter/avfiltergraph.h>
+#include <libavfilter/avfilter.h>
 #include <libavfilter/buffersink.h>
 #include <libavfilter/buffersrc.h>
 #include <libavutil/opt.h>
@@ -109,7 +109,7 @@ int FFMPEGWriter::PrivateData::open(const char *filename, int size_x, int size_y
 		return ret;
 	}
 	if (ofmt_ctx->oformat->flags & AVFMT_GLOBALHEADER) {
-		enc_ctx->flags |= /*AV_*/CODEC_FLAG_GLOBAL_HEADER;
+		enc_ctx->flags |= /*AV_*/AV_CODEC_FLAG_GLOBAL_HEADER;
 	}
 //	av_dump_format(ofmt_ctx, 0, filename, 1);
 	if (!(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
@@ -135,8 +135,8 @@ int FFMPEGWriter::PrivateData::init_filter(FilteringContext* fctx, AVCodecContex
 {
 	char args[512];
 	int ret = 0;
-	AVFilter *buffersrc = NULL;
-	AVFilter *buffersink = NULL;
+	const AVFilter *buffersrc = NULL;
+	const AVFilter *buffersink = NULL;
 	AVFilterContext *buffersrc_ctx = NULL;
 	AVFilterContext *buffersink_ctx = NULL;
 	AVFilterInOut *outputs = avfilter_inout_alloc();
@@ -285,7 +285,7 @@ int FFMPEGWriter::PrivateData::flush_encoder(unsigned int stream_index)
 {
 	int ret;
 	int got_frame;
-	if (!(ofmt_ctx->streams[stream_index]->codec->codec->capabilities & /*AV_*/CODEC_CAP_DELAY)) return 0;
+	if (!(ofmt_ctx->streams[stream_index]->codec->codec->capabilities & AV_CODEC_CAP_DELAY)) return 0;
 
 	while (1) {
 		ret = encode_write_frame(NULL, stream_index, &got_frame);

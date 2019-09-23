@@ -1,5 +1,7 @@
 // Copyright 2014-2017 Oxford University Innovation Limited and the authors of InfiniTAM
 
+#include <xtensor/xadapt.hpp>
+#include <xtensor/xnpy.hpp>
 #include "UIEngine.h"
 
 #include <string.h>
@@ -17,6 +19,7 @@
 #endif
 #endif
 
+#include <json/json.h>
 #include "../../ITMLib/ITMLibDefines.h"
 #include "../../ITMLib/Core/ITMBasicEngine.h"
 #include "../../ITMLib/Core/ITMBasicSurfelEngine.h"
@@ -505,6 +508,23 @@ void UIEngine::Initialise(int & argc, char** argv, ImageSourceEngine *imageSourc
 	this->colourModes_freeview.push_back(UIColourMode("confidence", ITMMainEngine::InfiniTAM_IMAGE_FREECAMERA_COLOUR_FROM_CONFIDENCE));
 
 	this->imageSource = imageSource;
+
+    if (isRecording) {
+        char str[120];
+        sprintf(str, "%s/camera_intrinsic.json", outFolder);
+        // output color intrinsic
+        auto rgbIntr = this->imageSource->getCalib().intrinsics_rgb;
+        Json::Value root;
+        root["width"] = rgbIntr.imgSize.width;
+        root["height"] = rgbIntr.imgSize.height;
+        root["fx"] = rgbIntr.projectionParamsSimple.fx;
+        root["fy"] = rgbIntr.projectionParamsSimple.fy;
+        root["px"] = rgbIntr.projectionParamsSimple.px;
+        root["py"] = rgbIntr.projectionParamsSimple.py;
+        std::ofstream fout(str);
+        fout << root;
+    }
+
 	this->imuSource = imuSource;
 	this->mainEngine = mainEngine;
 	{
@@ -644,6 +664,16 @@ void UIEngine::ProcessFrame()
 	//actual processing on the mailEngine
 	if (imuSource != NULL) trackerResult = mainEngine->ProcessFrame(inputRGBImage, inputRawDepthImage, inputIMUMeasurement);
 	else trackerResult = mainEngine->ProcessFrame(inputRGBImage, inputRawDepthImage);
+
+    const auto depthM = mainEngine->getDepthPose();
+    const auto colorM = imageSource->getCalib().trafo_rgb_to_depth.calib_inv * depthM;
+    auto xtColorM = xt::adapt(colorM.m, {4, 4});
+    if (isRecording) {
+        char str[120];
+        sprintf(str, "%s/pose_%04d.npy", outFolder, currentFrameNo);
+        xt::dump_npy(str, xtColorM);
+    }
+
 
 	trackingResult = (int)trackerResult;
 

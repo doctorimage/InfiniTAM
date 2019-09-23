@@ -46,8 +46,8 @@ using namespace ITMLib;
     
     STSensorController *_sensorController;
     
-    ITMMainEngine::GetImageType mainImageType;
-    ITMMainEngine::GetImageType mainImageFreeviewType;
+    Engine::GetImageType mainImageType;
+    Engine::GetImageType mainImageFreeviewType;
     
     ORUtils::SE3Pose freeviewPose;
     ITMLib::ITMIntrinsics freeviewIntrinsics;
@@ -218,7 +218,7 @@ using namespace ITMLib;
     isDone = true;
 
     freeviewIntrinsics = imageSource->calib.intrinsics_d;
-    mainImageType = ITMMainEngine::InfiniTAM_IMAGE_SCENERAYCAST;
+    mainImageType = Engine::InfiniTAM_IMAGE_SCENERAYCAST;
     
     freeviewActive = false;
 }
@@ -274,25 +274,25 @@ using namespace ITMLib;
 - (IBAction)bGreyRenderingPressed:(id)sender {
     if (freeviewActive)
     {
-        mainImageFreeviewType = ITMMainEngine::InfiniTAM_IMAGE_FREECAMERA_SHADED;
+        mainImageFreeviewType = Engine::InfiniTAM_IMAGE_FREECAMERA_SHADED;
         [self refreshFreeview];
     }
-    else mainImageType = ITMMainEngine::InfiniTAM_IMAGE_SCENERAYCAST;
+    else mainImageType = Engine::InfiniTAM_IMAGE_SCENERAYCAST;
 }
 
 - (IBAction)bConfidenceRenderingPressed:(id)sender {
     if (freeviewActive)
     {
-        mainImageFreeviewType = ITMMainEngine::InfiniTAM_IMAGE_FREECAMERA_COLOUR_FROM_CONFIDENCE;
+        mainImageFreeviewType = Engine::InfiniTAM_IMAGE_FREECAMERA_COLOUR_FROM_CONFIDENCE;
         [self refreshFreeview];
     }
-    else mainImageType = ITMMainEngine::InfiniTAM_IMAGE_COLOUR_FROM_CONFIDENCE;
+    else mainImageType = Engine::InfiniTAM_IMAGE_COLOUR_FROM_CONFIDENCE;
 }
 
 - (IBAction)bNormalsRenderingPressed:(id)sender {
     if (freeviewActive)
     {
-        mainImageFreeviewType = ITMMainEngine::InfiniTAM_IMAGE_FREECAMERA_COLOUR_FROM_NORMAL;
+        mainImageFreeviewType = Engine::InfiniTAM_IMAGE_FREECAMERA_COLOUR_FROM_NORMAL;
         [self refreshFreeview];
     }
     else mainImageType = ITMMainEngine::InfiniTAM_IMAGE_COLOUR_FROM_NORMAL;

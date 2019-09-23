@@ -12,6 +12,14 @@ PROJECT(InfiniTAM)
 
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
+SET(OpenGL_GL_PREFERENCE GLVND)
+SET(WITH_PNG ON)
+SET(WITH_OPENNI ON)
+SET(WITH_REALSENSE2 ON)
+SET(WITH_FFMPEG ON)
+SET(OPENNI_INCLUDE_DIR /usr/include/openni2)
+SET(OPENNI_ROOT /usr/lib/OpenNI2)
+
 #################################
 # Add additional compiler flags #
 #################################
@@ -20,11 +28,11 @@ IF(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++ -Wno-deprecated-declarations -Wno-unused-function")
 ENDIF()
 
-IF(NOT MSVC_IDE)
-  SET(CFLAGS_WARN "-Wall -Wextra -Wno-unused-parameter -Wno-strict-aliasing")
-  SET(CMAKE_CXX_FLAGS "-fPIC -O3 -march=native ${CFLAGS_WARN} ${CMAKE_CXX_FLAGS}")
-  #SET(CMAKE_CXX_FLAGS "-fPIC -g ${CFLAGS_WARN} ${CMAKE_CXX_FLAGS}")
-ENDIF()
+#IF(NOT MSVC_IDE) # TODO resume optimization
+#  SET(CFLAGS_WARN "-Wall -Wextra -Wno-unused-parameter -Wno-strict-aliasing")
+#  SET(CMAKE_CXX_FLAGS "-fPIC -O3 -march=native ${CFLAGS_WARN} ${CMAKE_CXX_FLAGS}")
+#  #SET(CMAKE_CXX_FLAGS "-fPIC -g ${CFLAGS_WARN} ${CMAKE_CXX_FLAGS}")
+#ENDIF()
 
 #########################
 # Suppress auto-linking #

@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <cstring>
 
 #ifdef COMPILE_WITH_RealSense2
 #include "librealsense2/rs.hpp"
@@ -136,7 +137,7 @@ void RealSense2Engine::getImages(ITMUChar4Image *rgbImage, ITMShortImage *rawDep
 	
 	rs2::depth_frame depth = frames.get_depth_frame();
 	rs2::video_frame color = frames.get_color_frame();
-	
+
 	constexpr size_t rgb_pixel_size = sizeof(Vector4u);
 	static_assert(4 == rgb_pixel_size, "sizeof(rgb pixel) must equal 4");
 	const Vector4u * color_frame = reinterpret_cast<const Vector4u*>(color.get_data());
@@ -191,3 +192,145 @@ Vector2i RealSense2Engine::getRGBImageSize(void) const
 
 #endif
 
+RealSense2FileEngine::RealSense2FileEngine(const char *inputFileName) {
+    this->calib.disparityCalib.SetStandard();
+    this->calib.trafo_rgb_to_depth = ITMExtrinsics();
+    this->calib.intrinsics_d = this->calib.intrinsics_rgb;
+
+
+    this->ctx = std::unique_ptr<rs2::context>(new rs2::context());
+
+    rs2::config cfg;
+    cfg.enable_device_from_file(inputFileName, false);
+
+    this->pipe = std::unique_ptr<rs2::pipeline>(new rs2::pipeline(*ctx));
+    printf("Loading RealSense file from %s.\n", inputFileName);
+    rs2::pipeline_profile pipeline_profile = pipe->start(cfg);
+
+    this->device = std::unique_ptr<rs2::device>(new rs2::device(pipe->get_active_profile().get_device()));
+    this->device.get()->as<rs2::playback>().set_real_time(false);
+
+    print_device_information(*device);
+
+
+    auto availableSensors = device->query_sensors();
+    std::cout << "Device consists of " << availableSensors.size() << " sensors:" << std::endl;
+    for (rs2::sensor sensor : availableSensors) {
+        //print_sensor_information(sensor);
+
+        if (rs2::depth_sensor dpt_sensor = sensor.as<rs2::depth_sensor>()) {
+            float scale = dpt_sensor.get_depth_scale();
+            std::cout << "Scale factor for depth sensor is: " << scale << std::endl;
+            this->calib.disparityCalib.SetFrom(scale, 0, ITMLib::ITMDisparityCalib::TRAFO_AFFINE);
+        }
+    }
+
+
+    rs2::video_stream_profile depth_stream_profile = pipeline_profile.get_stream(
+            RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
+    rs2::video_stream_profile color_stream_profile = pipeline_profile.get_stream(
+            RS2_STREAM_COLOR).as<rs2::video_stream_profile>();
+
+    this->imageSize_d = Vector2i(depth_stream_profile.width(),depth_stream_profile.height());
+    this->imageSize_rgb = Vector2i(color_stream_profile.width(),color_stream_profile.height());
+    this->depth_format = depth_stream_profile.format();
+    this->color_format = color_stream_profile.format();
+
+    // - intrinsics
+    rs2_intrinsics intrinsics_depth = depth_stream_profile.get_intrinsics();
+    rs2_intrinsics intrinsics_rgb = color_stream_profile.get_intrinsics();
+
+    this->calib.intrinsics_d.projectionParamsSimple.fx = intrinsics_depth.fx;
+    this->calib.intrinsics_d.projectionParamsSimple.fy = intrinsics_depth.fy;
+    this->calib.intrinsics_d.projectionParamsSimple.px = intrinsics_depth.ppx;
+    this->calib.intrinsics_d.projectionParamsSimple.py = intrinsics_depth.ppy;
+
+    this->calib.intrinsics_rgb.projectionParamsSimple.fx = intrinsics_rgb.fx;
+    this->calib.intrinsics_rgb.projectionParamsSimple.fy = intrinsics_rgb.fy;
+    this->calib.intrinsics_rgb.projectionParamsSimple.px = intrinsics_rgb.ppx;
+    this->calib.intrinsics_rgb.projectionParamsSimple.py = intrinsics_rgb.ppy;
+
+    // - extrinsics
+    rs2_extrinsics rs_extrinsics = color_stream_profile.get_extrinsics_to(depth_stream_profile);
+
+    Matrix4f extrinsics;
+    extrinsics.m00 = rs_extrinsics.rotation[0];
+    extrinsics.m10 = rs_extrinsics.rotation[1];
+    extrinsics.m20 = rs_extrinsics.rotation[2];
+    extrinsics.m01 = rs_extrinsics.rotation[3];
+    extrinsics.m11 = rs_extrinsics.rotation[4];
+    extrinsics.m21 = rs_extrinsics.rotation[5];
+    extrinsics.m02 = rs_extrinsics.rotation[6];
+    extrinsics.m12 = rs_extrinsics.rotation[7];
+    extrinsics.m22 = rs_extrinsics.rotation[8];
+    extrinsics.m30 = rs_extrinsics.translation[0];
+    extrinsics.m31 = rs_extrinsics.translation[1];
+    extrinsics.m32 = rs_extrinsics.translation[2];
+
+    extrinsics.m33 = 1.0f;
+    extrinsics.m03 = 0.0f;
+    extrinsics.m13 = 0.0f;
+    extrinsics.m23 = 0.0f;
+
+    this->calib.trafo_rgb_to_depth.SetFrom(extrinsics);
+}
+
+void RealSense2FileEngine::getImages(ITMUChar4Image *rgbImage, ITMShortImage *rawDepthImage) {
+
+    dataAvailable = false;
+
+    // get frames
+    rs2::frameset frames = pipe->wait_for_frames();
+
+    rs2::depth_frame depth = frames.get_depth_frame();
+    rs2::video_frame color = frames.get_color_frame();
+
+    if (depth_format == RS2_FORMAT_Z16) {
+        constexpr size_t depth_pixel_size = sizeof(uint16_t);
+        static_assert(2 == depth_pixel_size, "sizeof(depth pixel) must equal 2");
+        auto depth_frame = reinterpret_cast<const uint16_t *>(depth.get_data());
+
+        // setup infinitam frames
+        short *rawDepth = rawDepthImage->GetData(MEMORYDEVICE_CPU);
+        std::memcpy(rawDepth, depth_frame, depth_pixel_size * rawDepthImage->noDims.x * rawDepthImage->noDims.y);
+    } else {
+        std::cerr << "unsupported depth format " << rs2_format_to_string(depth_format) << std::endl;
+    }
+
+    if (color_format == RS2_FORMAT_RGBA8) {
+
+        constexpr size_t rgb_pixel_size = sizeof(Vector4u);
+        static_assert(4 == rgb_pixel_size, "sizeof(rgb pixel) must equal 4"); // TODO here is the issue
+        const auto color_frame = reinterpret_cast<const Vector4u *>(color.get_data());
+
+        Vector4u *rgb = rgbImage->GetData(MEMORYDEVICE_CPU);
+
+        // Let's just memcpy the data instead of using loops
+        std::memcpy(rgb, color_frame, rgb_pixel_size * rgbImage->noDims.x * rgbImage->noDims.y);
+    } else if (color_format == RS2_FORMAT_RGB8) {
+        auto color_frame = reinterpret_cast<const Vector3u *>(color.get_data());
+        Vector4u *rgb = rgbImage->GetData(MEMORYDEVICE_CPU);
+        const int n = rgbImage->noDims.x * rgbImage->noDims.y;
+        for (int i = 0; i < n; i++) {
+            rgb[i].r = color_frame[i].r;
+            rgb[i].g = color_frame[i].g;
+            rgb[i].b = color_frame[i].b;
+            rgb[i].a = ~(unsigned short) 0U;
+        }
+    } else {
+        std::cerr << "unsupported color format " << rs2_format_to_string(color_format) << std::endl;
+    }
+
+    auto thisTime = color.get_frame_number();
+    if (thisTime < lastTime) {
+        moreFrameFlag = false;
+        return;
+    }
+    lastTime = thisTime;
+
+    dataAvailable = true;
+}
+
+bool RealSense2FileEngine::hasMoreImages() const {
+    return moreFrameFlag;
+}
