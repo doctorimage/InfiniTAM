@@ -493,7 +493,7 @@ void UIEngine::glutMouseWheelFunction(int button, int dir, int x, int y)
 }
 
 void UIEngine::Initialise(int & argc, char** argv, ImageSourceEngine *imageSource, IMUSourceEngine *imuSource, ITMMainEngine *mainEngine,
-	const char *outFolder, ITMLibSettings::DeviceType deviceType)
+                          const char *outFolder, ITMLibSettings::DeviceType deviceType)
 {
 	this->freeviewActive = false;
 	this->integrationActive = true;
@@ -509,21 +509,19 @@ void UIEngine::Initialise(int & argc, char** argv, ImageSourceEngine *imageSourc
 
 	this->imageSource = imageSource;
 
-    if (isRecording) {
-        char str[120];
-        sprintf(str, "%s/camera_intrinsic.json", outFolder);
-        // output color intrinsic
-        auto rgbIntr = this->imageSource->getCalib().intrinsics_rgb;
-        Json::Value root;
-        root["width"] = rgbIntr.imgSize.width;
-        root["height"] = rgbIntr.imgSize.height;
-        root["fx"] = rgbIntr.projectionParamsSimple.fx;
-        root["fy"] = rgbIntr.projectionParamsSimple.fy;
-        root["px"] = rgbIntr.projectionParamsSimple.px;
-        root["py"] = rgbIntr.projectionParamsSimple.py;
-        std::ofstream fout(str);
-        fout << root;
-    }
+    char str[120];
+    sprintf(str, "%s/camera_intrinsic.json", outFolder);
+    // output color intrinsic
+    auto rgbIntr = this->imageSource->getCalib().intrinsics_rgb;
+    Json::Value root;
+    root["width"] = rgbIntr.imgSize.width;
+    root["height"] = rgbIntr.imgSize.height;
+    root["fx"] = rgbIntr.projectionParamsSimple.fx;
+    root["fy"] = rgbIntr.projectionParamsSimple.fy;
+    root["px"] = rgbIntr.projectionParamsSimple.px;
+    root["py"] = rgbIntr.projectionParamsSimple.py;
+    std::ofstream fout(str);
+    fout << root;
 
 	this->imuSource = imuSource;
 	this->mainEngine = mainEngine;

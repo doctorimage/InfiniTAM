@@ -280,7 +280,12 @@ void RealSense2FileEngine::getImages(ITMUChar4Image *rgbImage, ITMShortImage *ra
     dataAvailable = false;
 
     // get frames
-    rs2::frameset frames = pipe->wait_for_frames();
+    rs2::frameset frames;
+    bool okay = pipe->try_wait_for_frames(&frames);
+    if (!okay) {
+        moreFrameFlag = false;
+        return;
+    }
 
     rs2::depth_frame depth = frames.get_depth_frame();
     rs2::video_frame color = frames.get_color_frame();
@@ -320,13 +325,6 @@ void RealSense2FileEngine::getImages(ITMUChar4Image *rgbImage, ITMShortImage *ra
     } else {
         std::cerr << "unsupported color format " << rs2_format_to_string(color_format) << std::endl;
     }
-
-    auto thisTime = color.get_frame_number();
-    if (thisTime < lastTime) {
-        moreFrameFlag = false;
-        return;
-    }
-    lastTime = thisTime;
 
     dataAvailable = true;
 }

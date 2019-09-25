@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <fstream>
+#include <iostream>
 
 #if defined _MSC_VER
 #include <direct.h>
@@ -300,6 +301,9 @@ void SaveImageToFile(const ORUtils::Image<short>* image, const char* fileName)
 	for (size_t i = 0; i < image->dataSize; i++) data[i] = (dataSource[i] << 8) | ((dataSource[i] >> 8) & 255);
 
 	FILE *f = fopen(fileName, "wb");
+    if (f == nullptr) {
+        std::cerr << "cannot open file " << fileName << std::endl;
+    }
 	if (!pnm_writeheader(f, image->noDims.x, image->noDims.y, MONO_16u)) {
 		fclose(f); return;
 	}

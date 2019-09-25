@@ -46,7 +46,6 @@ namespace InputSource {
         void getImages(ITMUChar4Image *rgb, ITMShortImage *rawDepth) override;
         bool hasMoreImages() const override;
 	private:
-	    int lastTime = 0;
 	    bool moreFrameFlag = true;
 	    rs2_format depth_format,color_format;
 	};
