@@ -28,6 +28,8 @@ INCLUDE(${PROJECT_SOURCE_DIR}/cmake/UseUVC.cmake)
 # Specify the project files #
 #############################
 
+include_directories(include)
+
 SET(sources
         UVRender.cpp
         MyEngine.cpp
@@ -59,8 +61,10 @@ INCLUDE(${PROJECT_SOURCE_DIR}/cmake/SetCUDAAppTarget.cmake)
 find_package(xtl REQUIRED)
 find_package(xtensor REQUIRED)
 
+add_library(glad glad.c)
+
 TARGET_LINK_LIBRARIES(${targetname} InputSource ITMLib MiniSlamGraphLib
-        ORUtils FernRelocLib xtensor jsoncpp OpenMeshCore glew)
+        ORUtils FernRelocLib xtensor jsoncpp OpenMeshCore glad)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/LinkFFmpeg.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/LinkGLUT.cmake)
 INCLUDE(${PROJECT_SOURCE_DIR}/cmake/LinkLibRoyale.cmake)

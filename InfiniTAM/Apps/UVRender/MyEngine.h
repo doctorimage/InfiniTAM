@@ -4,8 +4,9 @@
 
 #include <vector>
 #include <memory>
+#include <xtensor/xarray.hpp>
 
-#include <glew.h>
+#include <glad/glad.h>
 #include "../../InputSource/ImageSourceEngine.h"
 #include "../../InputSource/IMUSourceEngine.h"
 #include "../../InputSource/FFMPEGWriter.h"
@@ -54,6 +55,7 @@ namespace InfiniTAM {
 
             ORUtils::Image<ORUtils::Vector4<unsigned char> > *refImage;
             int refTexIndex;
+            xt::xarray<float> normRefImage;
 
             float shUniform[9];
 

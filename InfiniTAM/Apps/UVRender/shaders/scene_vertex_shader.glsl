@@ -12,6 +12,7 @@ uniform mat4 normalMat;
 
 void main() {
     gl_Position = mvpMat*vec4(in_position, 1.0f);
+    //    gl_Position = vec4(0.0f, 0.0f, 0.0f, 1.0f);
     fs_normal = (normalMat*vec4(in_normal, 0.0f)).xyz;
     fs_tex_pos = in_tex_pos;
 }

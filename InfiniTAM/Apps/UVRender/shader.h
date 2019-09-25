@@ -5,7 +5,7 @@
 #ifndef INFINITAM_SHADER_H
 #define INFINITAM_SHADER_H
 
-#include <glew.h>
+#include <glad/glad.h>
 
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -119,6 +119,10 @@ public:
     // ------------------------------------------------------------------------
     void use() {
         glUseProgram(ID);
+    }
+
+    void noUse() {
+        glUseProgram(0);
     }
 
     // utility uniform functions

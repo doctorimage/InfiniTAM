@@ -5,7 +5,7 @@
 #ifndef INFINITAM_GLMODEL_H
 #define INFINITAM_GLMODEL_H
 
-#include <glew.h>
+#include <glad/glad.h>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include <OpenMesh/Core/Geometry/VectorT.hh>
 #include <glm/glm.hpp>
