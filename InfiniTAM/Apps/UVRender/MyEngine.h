@@ -55,7 +55,6 @@ namespace InfiniTAM {
 
             ORUtils::Image<ORUtils::Vector4<unsigned char> > *refImage;
             int refTexIndex;
-            xt::xarray<float> normRefImage;
 
             float shUniform[9];
 
@@ -64,6 +63,9 @@ namespace InfiniTAM {
             std::unique_ptr<Shader> shader;
 
             std::unique_ptr<GLModel> glModel;
+
+            glm::vec3 displace{};
+
         public:
             static MyEngine *Instance(void) {
                 if (instance == NULL) instance = new MyEngine();
@@ -81,7 +83,7 @@ namespace InfiniTAM {
             char *outFolder;
             bool needsRefresh;
 
-            unsigned fbo;
+            unsigned fbo, rbo;
 
             void Initialise(int &argc, char **argv, InputSource::ImageSourceEngine *imageSource, const char *outFolder,
                             const std::string &referenceTexturePath, const std::string &shParamsPath,
@@ -91,7 +93,7 @@ namespace InfiniTAM {
 
             static void Run();
 
-            void ProcessFrame();
+            void ProcessFrame(bool loadNew = true);
 
             static glm::mat4 getProjectionMatrix(ITMLib::ITMIntrinsics &intrinsics);
         };

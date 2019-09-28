@@ -98,11 +98,15 @@ RealSense2Engine::RealSense2Engine(const char *calibFilename, bool alignColourWi
 	this->calib.intrinsics_d.projectionParamsSimple.fy = intrinsics_depth.fy;
 	this->calib.intrinsics_d.projectionParamsSimple.px = intrinsics_depth.ppx;
 	this->calib.intrinsics_d.projectionParamsSimple.py = intrinsics_depth.ppy;
+    this->calib.intrinsics_d.imgSize.width = depth_stream_profile.width();
+    this->calib.intrinsics_d.imgSize.height = depth_stream_profile.height();
 	
 	this->calib.intrinsics_rgb.projectionParamsSimple.fx = intrinsics_rgb.fx;
 	this->calib.intrinsics_rgb.projectionParamsSimple.fy = intrinsics_rgb.fy;
 	this->calib.intrinsics_rgb.projectionParamsSimple.px = intrinsics_rgb.ppx;
 	this->calib.intrinsics_rgb.projectionParamsSimple.py = intrinsics_rgb.ppy;
+    this->calib.intrinsics_rgb.imgSize.width = color_stream_profile.width();
+    this->calib.intrinsics_rgb.imgSize.height = color_stream_profile.height();
 	
 	// - extrinsics
 	rs2_extrinsics rs_extrinsics = color_stream_profile.get_extrinsics_to(depth_stream_profile);
@@ -244,11 +248,15 @@ RealSense2FileEngine::RealSense2FileEngine(const char *inputFileName) {
     this->calib.intrinsics_d.projectionParamsSimple.fy = intrinsics_depth.fy;
     this->calib.intrinsics_d.projectionParamsSimple.px = intrinsics_depth.ppx;
     this->calib.intrinsics_d.projectionParamsSimple.py = intrinsics_depth.ppy;
+    this->calib.intrinsics_d.imgSize.width = depth_stream_profile.width();
+    this->calib.intrinsics_d.imgSize.height = depth_stream_profile.height();
 
     this->calib.intrinsics_rgb.projectionParamsSimple.fx = intrinsics_rgb.fx;
     this->calib.intrinsics_rgb.projectionParamsSimple.fy = intrinsics_rgb.fy;
     this->calib.intrinsics_rgb.projectionParamsSimple.px = intrinsics_rgb.ppx;
     this->calib.intrinsics_rgb.projectionParamsSimple.py = intrinsics_rgb.ppy;
+    this->calib.intrinsics_rgb.imgSize.width = color_stream_profile.width();
+    this->calib.intrinsics_rgb.imgSize.height = color_stream_profile.height();
 
     // - extrinsics
     rs2_extrinsics rs_extrinsics = color_stream_profile.get_extrinsics_to(depth_stream_profile);

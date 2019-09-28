@@ -164,6 +164,10 @@ void MyEngine::glutIdleFunction() {
 void MyEngine::glutKeyUpFunction(unsigned char key, int x, int y) {
     MyEngine *MyEngine = MyEngine::Instance();
 
+    const float step = 0.01;
+
+    MyEngine->needsRefresh = true;
+
     switch (key) {
         case 'c':
             MyEngine->currentColourMode++;
@@ -178,7 +182,33 @@ void MyEngine::glutKeyUpFunction(unsigned char key, int x, int y) {
             } else if (MyEngine->mainLoopAction == MyEngine::PROCESS_VIDEO) {
                 MyEngine->mainLoopAction = MyEngine::PROCESS_PAUSED;
             }
+            break;
+        case 'q':
+            MyEngine->displace.x += step;
+            MyEngine->ProcessFrame(false);
+            break;
+        case 'a':
+            MyEngine->displace.x -= step;
+            MyEngine->ProcessFrame(false);
+            break;
+        case 'w':
+            MyEngine->displace.y += step;
+            MyEngine->ProcessFrame(false);
+            break;
+        case 's':
+            MyEngine->displace.y -= step;
+            MyEngine->ProcessFrame(false);
+            break;
+        case 'e':
+            MyEngine->displace.z += step;
+            MyEngine->ProcessFrame(false);
+            break;
+        case 'd':
+            MyEngine->displace.z -= step;
+            MyEngine->ProcessFrame(false);
+            break;
         default:
+            MyEngine->needsRefresh = false;
             break;
     }
 }
@@ -249,20 +279,15 @@ void MyEngine::Initialise(int &argc, char **argv, ImageSourceEngine *imageSource
 
     {
         unsigned nCh = 4;
-        normRefImage = xt::xtensor<float, 3, xt::layout_type::column_major>(
-                {static_cast<unsigned long>(refImage->noDims.height),
-                 static_cast<unsigned long>(refImage->noDims.width), nCh});
-        for (int x = 0; x < refImage->noDims.width; x++) {
-            for (int y = 0; y < refImage->noDims.height; y++) {
-                for (int c = 0; c < int(nCh); c++) {
-                    normRefImage(x, y, c) = (float) refImage->GetData(MEMORYDEVICE_CPU)
-                    [x * refImage->noDims.height + y][c] / 255.0f; // convert to [0,1]
-                }
-            }
+        int totalNum = refImage->noDims.height * refImage->noDims.width * nCh;
+        std::vector<float> buffer(totalNum);
+        auto data = (const unsigned char *) refImage->GetData(MEMORYDEVICE_CPU);
+        for (int i = 0; i < totalNum; i++) {
+            buffer[i] = float(data[i]) / 255.0f;
         }
         glBindTexture(GL_TEXTURE_2D, textureId[UVIn]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, normRefImage.shape()[0], normRefImage.shape()[1],
-                     0, GL_RGBA, GL_FLOAT, normRefImage.data());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, refImage->noDims.x, refImage->noDims.y,
+                     0, GL_RGBA, GL_FLOAT, buffer.data());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -284,7 +309,14 @@ void MyEngine::Initialise(int &argc, char **argv, ImageSourceEngine *imageSource
                      imageSource->getRGBImageSize().height, 0, type, GL_FLOAT, nullptr);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + id, GL_TEXTURE_2D,
                                textureId[id], 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, imageSource->getRGBImageSize().width,
+                          imageSource->getRGBImageSize().height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     glutDisplayFunc(MyEngine::glutDisplayFunction);
@@ -319,12 +351,17 @@ void MyEngine::Initialise(int &argc, char **argv, ImageSourceEngine *imageSource
     printf("initialised.\n");
 }
 
-void MyEngine::ProcessFrame() {
-    if (!imageSource->hasMoreImages()) {
-        std::cout << "finished" << std::endl;
-        return;
+void MyEngine::ProcessFrame(bool loadNew) {
+
+    if (loadNew) {
+        if (!imageSource->hasMoreImages()) {
+            std::cout << "finished" << std::endl;
+            return;
+        }
+        imageSource->getImages(inputRGBImage, inputRawDepthImage);
+    } else {
+        currentFrameNo--;
     }
-    imageSource->getImages(inputRGBImage, inputRawDepthImage);
 
     sdkResetTimer(&timer_instant);
     sdkStartTimer(&timer_instant);
@@ -344,12 +381,19 @@ void MyEngine::ProcessFrame() {
     std::cout << ok << std::endl;
      */
 
-
     auto mvMat = glm::make_mat4(curPose.data());
+    /*
+    for (int r = 0; r < 4; r++) {
+        for (int c = 0; c < 4; c++) {
+            std::cout << mvMat[c][r] << " ";
+        }
+        std::cout << std::endl;
+    }
+     */
     mvMat = glm::mat4(1, 0, 0, 0,
-                      0, -1, 0, 0,
+                      0, 1, 0, 0,
                       0, 0, -1, 0,
-                      0, 0, 0, 1) * mvMat;
+                      displace.x, displace.y, displace.z, 1) * mvMat;
     auto mvpMat = pMat * mvMat;
     auto normalMat = glm::transpose(glm::inverse(mvMat));
 
@@ -367,8 +411,19 @@ void MyEngine::ProcessFrame() {
                         GL_COLOR_ATTACHMENT0 + UVOut};
     glDrawBuffers(3, buffers);
 
-    glEnable(GL_DEPTH_TEST);
+    glViewport(0, 0, imageSource->getRGBImageSize().width, imageSource->getRGBImageSize().height);
+
+    /*{
+        GLint m_viewport[4];
+        glGetIntegerv(GL_VIEWPORT, m_viewport);
+        for (int i = 0; i < 4; i++) {
+            std::cout << m_viewport[i] << " ";
+        }
+        std::cout << std::endl;
+    } */
+
     glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -386,8 +441,17 @@ void MyEngine::ProcessFrame() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // prevbug: ftl
 
     {
-        xt::xtensor<float, 3, xt::layout_type::column_major> uvImage(
-                {static_cast<unsigned long>(winSize.height), static_cast<unsigned long>(winSize.width), 2});
+        /*
+        int w, h;
+        int miplevel = 0;
+        glBindTexture(GL_TEXTURE_2D, textureId[RefOut]);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, miplevel, GL_TEXTURE_WIDTH, &w);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, miplevel, GL_TEXTURE_HEIGHT, &h);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        */
+        xt::xtensor<float, 3, xt::layout_type::row_major> uvImage(
+                {static_cast<unsigned long>(inputRGBImage->noDims.height),
+                 static_cast<unsigned long>(inputRGBImage->noDims.width), 2});
         glBindTexture(GL_TEXTURE_2D, textureId[UVOut]);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RG, GL_FLOAT, uvImage.data());
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -448,14 +512,17 @@ glm::mat4 MyEngine::getProjectionMatrix(ITMLib::ITMIntrinsics &intrinsics) {
     auto P = glm::mat4(0.0);
 
     P[0][0] = 2.0f * fx / width;
-    P[1][1] = 2.0f * fy / width;
+    P[1][1] = 2.0f * fy / height;
     P[2][0] = 1.0f - 2.0f * px / (width - 1.0f);
+//    P[2][0] = 1.0f - 2.0f * px / width;
     P[2][1] = 2.0f * py / (height - 1.0f) - 1.0f;
+//    P[2][1] = 2.0f * py / height - 1.0f;
     P[2][3] = -1.0f;
 
     auto n = 0.05f; // 5cm
-    P[2][2] = -1.0f;
-    P[3][2] = -2.0f * n;
+    auto f = 0.8f; // 0.8m
+    P[2][2] = (f + n) / (n - f);
+    P[3][2] = (2 * f * n) / (n - f);
 
     return P;
 }

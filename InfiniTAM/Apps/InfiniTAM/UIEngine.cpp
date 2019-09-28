@@ -4,7 +4,7 @@
 #include <xtensor/xnpy.hpp>
 #include "UIEngine.h"
 
-#include <string.h>
+#include <cstring>
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
@@ -259,7 +259,7 @@ void UIEngine::glutKeyUpFunction(unsigned char key, int x, int y)
 		uiEngine->integrationActive = !uiEngine->integrationActive;
 
 		ITMBasicEngine<ITMVoxel, ITMVoxelIndex> *basicEngine = dynamic_cast<ITMBasicEngine<ITMVoxel, ITMVoxelIndex>*>(uiEngine->mainEngine);
-		if (basicEngine != NULL) 
+		if (basicEngine != NULL)
 		{
 			if (uiEngine->integrationActive) basicEngine->turnOnIntegration();
 			else basicEngine->turnOffIntegration();
@@ -292,7 +292,7 @@ void UIEngine::glutKeyUpFunction(unsigned char key, int x, int y)
 	case 'k':
 	{
 		printf("saving scene to disk ... ");
-		
+
 		try
 		{
 			uiEngine->mainEngine->SaveToFile();
@@ -323,7 +323,7 @@ void UIEngine::glutKeyUpFunction(unsigned char key, int x, int y)
 	case ']':
 	{
 		ITMMultiEngine<ITMVoxel, ITMVoxelIndex> *multiEngine = dynamic_cast<ITMMultiEngine<ITMVoxel, ITMVoxelIndex>*>(uiEngine->mainEngine);
-		if (multiEngine != NULL) 
+		if (multiEngine != NULL)
 		{
 			int idx = multiEngine->getFreeviewLocalMapIdx();
 			if (key == '[') idx--;
@@ -666,7 +666,8 @@ void UIEngine::ProcessFrame()
 
     const auto depthM = mainEngine->getDepthPose();
     const auto colorM = imageSource->getCalib().trafo_rgb_to_depth.calib_inv * depthM;
-    auto xtColorM = xt::adapt(colorM.m, {4, 4});
+    auto xtColorM = xt::xtensor_fixed<float, xt::xshape<4, 4>, xt::layout_type::column_major>();
+    memcpy(xtColorM.data(), colorM.m, sizeof(float) * 16);
     if (isRecording) {
         char str[120];
         sprintf(str, "%s/pose_%04d.npy", outFolder, currentFrameNo);
