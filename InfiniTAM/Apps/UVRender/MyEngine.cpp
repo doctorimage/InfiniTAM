@@ -398,14 +398,16 @@ void MyEngine::ProcessFrame(bool loadNew) {
         std::cout << std::endl;
     }
      */
+    /*
     mvMat = glm::mat4(1, 0, 0, 0,
                       0, 1, 0, 0,
                       0, 0, 1, 0,
                       displace.x, displace.y, displace.z, 1) * mvMat;
+    */
     auto mvpMat = pMat * mvMat;
     auto normalMat = glm::transpose(glm::inverse(mvMat));
 
-    {
+    /*{
         auto pos = glModel->vertices[0].position;
         auto pixel = mvpMat * glm::vec4(pos, 1);
         auto norm_pixel = pixel / pixel.w;
@@ -433,7 +435,7 @@ void MyEngine::ProcessFrame(bool loadNew) {
             std::cout << std::endl;
         }
         std::cout << norm_pixel.x << " " << norm_pixel.y << std::endl;
-    }
+    }*/
 
     /*{
         int debug_vertex = 53613;

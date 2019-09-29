@@ -98,6 +98,8 @@ RealSense2Engine::RealSense2Engine(const char *calibFilename, bool alignColourWi
 	this->calib.intrinsics_d.projectionParamsSimple.fy = intrinsics_depth.fy;
 	this->calib.intrinsics_d.projectionParamsSimple.px = intrinsics_depth.ppx;
 	this->calib.intrinsics_d.projectionParamsSimple.py = intrinsics_depth.ppy;
+    this->calib.intrinsics_d.projectionParamsSimple.all =
+            *((Vector4f *) &this->calib.intrinsics_d.projectionParamsSimple.fx);
     this->calib.intrinsics_d.imgSize.width = depth_stream_profile.width();
     this->calib.intrinsics_d.imgSize.height = depth_stream_profile.height();
 	
@@ -105,6 +107,8 @@ RealSense2Engine::RealSense2Engine(const char *calibFilename, bool alignColourWi
 	this->calib.intrinsics_rgb.projectionParamsSimple.fy = intrinsics_rgb.fy;
 	this->calib.intrinsics_rgb.projectionParamsSimple.px = intrinsics_rgb.ppx;
 	this->calib.intrinsics_rgb.projectionParamsSimple.py = intrinsics_rgb.ppy;
+    this->calib.intrinsics_rgb.projectionParamsSimple.all =
+            *((Vector4f *) &this->calib.intrinsics_rgb.projectionParamsSimple.fx);
     this->calib.intrinsics_rgb.imgSize.width = color_stream_profile.width();
     this->calib.intrinsics_rgb.imgSize.height = color_stream_profile.height();
 	
