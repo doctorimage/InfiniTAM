@@ -29,7 +29,7 @@ namespace InputSource {
 		
 	public:
 		RealSense2Engine(const char *calibFilename, bool alignColourWithDepth = true,
-						 Vector2i imageSize_rgb = Vector2i(640, 480), Vector2i imageSize_d = Vector2i(640, 480));
+						 Vector2i imageSize_rgb = Vector2i(1280,720), Vector2i imageSize_d = Vector2i(640, 480));
 
         ~RealSense2Engine();
 		

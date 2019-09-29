@@ -28,5 +28,5 @@ void main() {
     out_color = texture(corresTexture, fs_tex_pos);
     out_tex_pos = fs_tex_pos;
     vec3 albedo = vec3(0.75);
-    out_shading = vec4(albedo*calcShLight(fs_normal), 1.0f);
+    out_shading = vec4(albedo*calcShLight(fs_normal), 0.8f);
 }

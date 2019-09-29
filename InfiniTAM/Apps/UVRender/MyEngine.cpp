@@ -3,6 +3,7 @@
 #include <xtensor/xnpy.hpp>
 #include "MyEngine.h"
 #include <iostream>
+#include <algorithm>
 
 #include <cstring>
 #include <xtensor/xarray.hpp>
@@ -164,7 +165,7 @@ void MyEngine::glutIdleFunction() {
 void MyEngine::glutKeyUpFunction(unsigned char key, int x, int y) {
     MyEngine *MyEngine = MyEngine::Instance();
 
-    const float step = 0.01;
+    const float step = 0.001, largeStep = 0.01;
 
     MyEngine->needsRefresh = true;
 
@@ -181,6 +182,11 @@ void MyEngine::glutKeyUpFunction(unsigned char key, int x, int y) {
                 MyEngine->mainLoopAction = MyEngine::PROCESS_VIDEO;
             } else if (MyEngine->mainLoopAction == MyEngine::PROCESS_VIDEO) {
                 MyEngine->mainLoopAction = MyEngine::PROCESS_PAUSED;
+            }
+            break;
+        case 'n':
+            if (MyEngine->mainLoopAction == MyEngine::PROCESS_PAUSED) {
+                MyEngine->ProcessFrame();
             }
             break;
         case 'q':
@@ -211,6 +217,8 @@ void MyEngine::glutKeyUpFunction(unsigned char key, int x, int y) {
             MyEngine->needsRefresh = false;
             break;
     }
+//    std::cout << MyEngine->displace.x << " " << MyEngine->displace.y << " " << MyEngine->displace.z
+//              << std::endl;
 }
 
 void MyEngine::Initialise(int &argc, char **argv, ImageSourceEngine *imageSource, const char *outFolder,
@@ -392,10 +400,40 @@ void MyEngine::ProcessFrame(bool loadNew) {
      */
     mvMat = glm::mat4(1, 0, 0, 0,
                       0, 1, 0, 0,
-                      0, 0, -1, 0,
+                      0, 0, 1, 0,
                       displace.x, displace.y, displace.z, 1) * mvMat;
     auto mvpMat = pMat * mvMat;
     auto normalMat = glm::transpose(glm::inverse(mvMat));
+
+    {
+        auto pos = glModel->vertices[0].position;
+        auto pixel = mvpMat * glm::vec4(pos, 1);
+        auto norm_pixel = pixel / pixel.w;
+        auto intr = glm::mat3(rgbIntrinsics.projectionParamsSimple.fx, 0, 0,
+                              0, rgbIntrinsics.projectionParamsSimple.fy, 0,
+                              rgbIntrinsics.projectionParamsSimple.px, rgbIntrinsics.projectionParamsSimple.py, 1);
+        auto screen_pos = intr * pos;
+        auto norm_screen_pos = screen_pos / screen_pos.z;
+        auto scale_mat = glm::mat3(2.0 / (rgbIntrinsics.imgSize.width - 1), 0, 0,
+                                   0, -2.0 / (rgbIntrinsics.imgSize.height - 1), 0,
+                                   -1, 1, 1);
+        auto rescaled_pos = scale_mat * screen_pos;
+        auto norm_rescaled_pos = rescaled_pos / rescaled_pos.z;
+        auto merge_mat = scale_mat * intr;
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                std::cout << merge_mat[c][r] << " ";
+            }
+            std::cout << std::endl;
+        }
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+                std::cout << mvpMat[c][r] << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << norm_pixel.x << " " << norm_pixel.y << std::endl;
+    }
 
     /*{
         int debug_vertex = 53613;
@@ -511,17 +549,17 @@ glm::mat4 MyEngine::getProjectionMatrix(ITMLib::ITMIntrinsics &intrinsics) {
 
     auto P = glm::mat4(0.0);
 
-    P[0][0] = 2.0f * fx / width;
-    P[1][1] = 2.0f * fy / height;
-    P[2][0] = 1.0f - 2.0f * px / (width - 1.0f);
+    P[0][0] = 2.0f * fx / (width - 1.0f);
+    P[1][1] = 2.0f * fy / (height - 1.0f);
+    P[2][0] = 2.0f * px / (width - 1.0f) - 1.0f;
 //    P[2][0] = 1.0f - 2.0f * px / width;
     P[2][1] = 2.0f * py / (height - 1.0f) - 1.0f;
 //    P[2][1] = 2.0f * py / height - 1.0f;
-    P[2][3] = -1.0f;
+    P[2][3] = 1.0f;
 
     auto n = 0.05f; // 5cm
     auto f = 0.8f; // 0.8m
-    P[2][2] = (f + n) / (n - f);
+    P[2][2] = (f + n) / (f - n);
     P[3][2] = (2 * f * n) / (n - f);
 
     return P;

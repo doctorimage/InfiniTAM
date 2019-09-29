@@ -510,19 +510,24 @@ void UIEngine::Initialise(int & argc, char** argv, ImageSourceEngine *imageSourc
 
 	this->imageSource = imageSource;
 
-    char str[120];
-    sprintf(str, "%s/camera_intrinsic.json", outFolder);
-    // output color intrinsic
-    auto rgbIntr = this->imageSource->getCalib().intrinsics_rgb;
-    Json::Value root;
-    root["width"] = rgbIntr.imgSize.width;
-    root["height"] = rgbIntr.imgSize.height;
-    root["fx"] = rgbIntr.projectionParamsSimple.fx;
-    root["fy"] = rgbIntr.projectionParamsSimple.fy;
-    root["px"] = rgbIntr.projectionParamsSimple.px;
-    root["py"] = rgbIntr.projectionParamsSimple.py;
-    std::ofstream fout(str);
-    fout << root;
+	auto saveMatrix = [&](const std::string& name,const ITMIntrinsics& intr) {
+        char str[120];
+        sprintf(str, "%s/%s.json", outFolder, name.c_str());
+        // output color intrinsic
+        Json::Value root;
+        root["width"] = intr.imgSize.width;
+        root["height"] = intr.imgSize.height;
+        root["fx"] = intr.projectionParamsSimple.fx;
+        root["fy"] = intr.projectionParamsSimple.fy;
+        root["px"] = intr.projectionParamsSimple.px;
+        root["py"] = intr.projectionParamsSimple.py;
+        std::ofstream fout(str);
+        fout << root;
+	};
+
+    saveMatrix("camera_intrinsic_color", this->imageSource->getCalib().intrinsics_rgb);
+    saveMatrix("camera_intrinsic_depth", this->imageSource->getCalib().intrinsics_d);
+
 
 	this->imuSource = imuSource;
 	this->mainEngine = mainEngine;
